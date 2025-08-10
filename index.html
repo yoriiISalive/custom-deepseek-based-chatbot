@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Personality Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-container::-webkit-scrollbar-track {
+            background: #374151; /* bg-gray-700 */
+        }
+        #chat-container::-webkit-scrollbar-thumb {
+            background: #6b7280; /* bg-gray-500 */
+            border-radius: 3px;
+        }
+        .prose p { margin-bottom: 1rem; }
+        .prose code { 
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 6px;
+        }
+        .prose pre {
+            background-color: #111827;
+            color: #d1d5db;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+            font-size: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl mx-auto bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style="height: 90vh;">
+        
+        <!-- Personality Setup View -->
+        <div id="personality-view" class="p-8 flex flex-col justify-center items-center h-full">
+            <div class="text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-cyan-400 mb-4"><path d="M12 2a10 10 0 0 0-10 10c0 5 3.4 9.3 8 10.5"/><path d="M12 22a10 10 0 0 0 10-10c0-5-3.4-9.3-8-10.5"/><path d="M12 2a10 10 0 0 1 10 10c0 5-3.4-9.3-8 10.5"/><path d="M12 22a10 10 0 0 1-10-10c0-5 3.4-9.3 8-10.5"/><path d="M7 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1 1 1 0 0 0-1-1H8a1 1 0 0 0-1 1Z"/><path d="M8.5 8.5c.313-.313.469-.469 1-1 .531.531.688.688 1 1"/><path d="M13.5 8.5c.313-.313.469-.469 1-1 .531.531.688.688 1 1"/></svg>
+                <h1 class="text-2xl font-bold text-white mb-2">Create Your Chatbot's Personality</h1>
+                <p class="text-gray-400 mb-6">Describe how you want your AI to behave. Be as specific as you like!</p>
+            </div>
+            <textarea id="personality-input" class="w-full h-40 bg-gray-900 text-gray-300 p-4 rounded-lg border border-gray-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none" placeholder="e.g., 'You are a sarcastic pirate who is secretly helpful.' or 'You are a cheerful and encouraging fitness coach.'"></textarea>
+            <button id="start-chat-btn" class="mt-6 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 ease-in-out">
+                Start Chatting
+            </button>
+        </div>
+
+        <!-- Chat View -->
+        <div id="chat-view" class="hidden flex-grow flex flex-col min-h-0">
+            <header class="bg-gray-900/50 backdrop-blur-sm p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><path d="M17 18.5a9 9 0 1 0-9 0"/><path d="M12 14v8"/><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="m2 12h2"/><path d="m20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                    <h1 class="text-xl font-bold text-gray-100">Chatbot</h1>
+                </div>
+                <button id="change-personality-btn" class="text-sm text-gray-400 hover:text-white transition">Change Personality</button>
+            </header>
+            
+            <div id="chat-container" class="flex-1 p-6 overflow-y-auto space-y-6">
+                <!-- Messages will be appended here -->
+            </div>
+
+            <div id="typing-indicator" class="hidden px-6 pb-2 flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-800/60 border-t border-gray-700 flex-shrink-0">
+                <div class="flex items-center space-x-4">
+                    <input type="text" id="user-input" class="flex-grow bg-gray-700 text-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Type your message...">
+                    <button id="send-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white p-3 rounded-full transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const personalityView = document.getElementById('personality-view');
+        const chatView = document.getElementById('chat-view');
+        const personalityInput = document.getElementById('personality-input');
+        const startChatBtn = document.getElementById('start-chat-btn');
+        const changePersonalityBtn = document.getElementById('change-personality-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        let conversationHistory = [];
+        let personality = "You are a helpful and friendly assistant.";
+        
+        // --- OpenRouter API Call Function ---
+        async function getAIResponse(history, persona) {
+            const apiKey = "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";
+            const modelName = "deepseek/deepseek-r1-0528-qwen3-8b:free";
+            const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+
+            // Map the history to the format OpenRouter expects
+            const messages = history.map(turn => {
+                // OpenRouter uses 'assistant' instead of 'model'
+                const role = turn.role === 'model' ? 'assistant' : turn.role;
+                return { role: role, content: turn.parts[0].text };
+            });
+
+            const payload = {
+                model: modelName,
+                messages: [
+                    { role: "system", content: persona },
+                    ...messages
+                ]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        // Recommended headers for OpenRouter
+                        'HTTP-Referer': `${location.protocol}//${location.host}`, 
+                        'X-Title': 'Custom Personality Chatbot'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    throw new Error(`API Error: ${response.status} ${response.statusText}. Body: ${errorBody}`);
+                }
+
+                const result = await response.json();
+                if (result.choices && result.choices.length > 0 && result.choices[0].message && result.choices[0].message.content) {
+                    return result.choices[0].message.content;
+                }
+                return "I'm not sure how to respond to that. Could you try rephrasing?";
+            } catch (error) {
+                console.error("Error fetching AI response:", error);
+                return `Sorry, I encountered an error: ${error.message}`;
+            }
+        }
+
+        function addMessageToChat(sender, message) {
+            const messageWrapper = document.createElement('div');
+            const messageElement = document.createElement('div');
+            
+            messageWrapper.classList.add('flex', 'items-end', 'gap-2');
+            messageElement.classList.add('max-w-lg', 'rounded-2xl', 'px-4', 'py-3', 'prose', 'prose-invert');
+
+            if (sender === 'user') {
+                messageWrapper.classList.add('justify-end');
+                messageElement.classList.add('bg-cyan-600', 'text-white', 'rounded-br-none');
+                messageElement.textContent = message;
+            } else {
+                messageWrapper.classList.add('justify-start');
+                messageElement.classList.add('bg-gray-700', 'text-gray-200', 'rounded-bl-none');
+                // Use marked to render markdown from AI
+                messageElement.innerHTML = marked.parse(message);
+            }
+
+            messageWrapper.appendChild(messageElement);
+            chatContainer.appendChild(messageWrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function handleSendMessage() {
+            const messageText = userInput.value.trim();
+            if (!messageText) return;
+
+            addMessageToChat('user', messageText);
+            conversationHistory.push({ role: 'user', parts: [{ text: messageText }] });
+            userInput.value = '';
+            typingIndicator.classList.remove('hidden');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            const aiResponse = await getAIResponse(conversationHistory, personality);
+            
+            typingIndicator.classList.add('hidden');
+            addMessageToChat('bot', aiResponse);
+            // The role 'model' is used internally to be compatible with the previous structure
+            conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
+        }
+
+        // --- Event Listeners ---
+        startChatBtn.addEventListener('click', () => {
+            const customPersonality = personalityInput.value.trim();
+            if (customPersonality) {
+                personality = customPersonality;
+            }
+            
+            // Reset and add initial bot message
+            conversationHistory = [];
+            chatContainer.innerHTML = ''; // Clear previous chat
+            addMessageToChat('bot', 'Hello! How can I help you today?');
+            conversationHistory.push({ role: 'model', parts: [{ text: 'Hello! How can I help you today?' }] });
+
+            personalityView.classList.add('hidden');
+            chatView.classList.remove('hidden');
+            chatView.classList.add('flex');
+        });
+
+        changePersonalityBtn.addEventListener('click', () => {
+            chatView.classList.add('hidden');
+            chatView.classList.remove('flex');
+            personalityView.classList.remove('hidden');
+        });
+
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+    </script>
+</body>
+</html>
